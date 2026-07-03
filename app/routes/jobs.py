@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request
 
 from app.services.job_service import create_job, get_job_by_id
+from app.services.job_validation_services import validate_job_submission
 
 jobs_bp = Blueprint("jobs", __name__)
 
@@ -14,19 +15,17 @@ def submit_job():
             }
     """
 
-    data = request.get_json()
-    if data is None:
-        return jsonify({"error":"Request body must be json"}),400
-    language = data.get("language")
-    source_code = data.get("source_code")
-
-    if not language:
-        return jsonify({"error":"language is required"}),400
-    if not source_code:
-        return jsonify({"error": "source code is required"}),400
+    data = request.get_json(silent=True)
     
-    if language != "python":
-        return jsonify({"error":"only python is supported for now"}),400
+    is_valid, error_message = validate_job_submission(data)
+
+    if not is_valid:
+        return jsonify({
+            "error": error_message
+        }),400
+    
+    language = data["language"].strip().lower()
+    source_code = data["source_code"]
     
     job = create_job(language=language,source_code=source_code)
 
