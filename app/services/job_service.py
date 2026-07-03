@@ -1,15 +1,10 @@
 from app.extensions import db
 from app.models.job import Job
+from app.services.queue_service import enqueue_job
 
 def create_job(language, source_code):
     """
         Create a New Job in the database
-
-        Placeholder for future logic:
-            - validate language
-            - validate code size
-            - reject empty code
-            - enqueue job in Redis
     """
     job = Job(
         language = language,
@@ -19,6 +14,8 @@ def create_job(language, source_code):
 
     db.session.add(job)
     db.session.commit()
+
+    enqueue_job(job.id)
 
     return job
 
