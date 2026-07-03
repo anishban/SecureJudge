@@ -18,5 +18,8 @@ def create_app():
     from app.routes.health import health_bp
     app.register_blueprint(health_bp)
 
+    from app.routes.jobs import jobs_bp
+    app.register_blueprint(jobs_bp)
+
     return app
     
