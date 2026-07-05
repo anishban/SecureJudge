@@ -25,11 +25,14 @@ def process_job(job_id):
         job.stdout = result['stdout']
         job.stderr = result['stderr']
         job.exit_code = result['exit_code']
+        job.execution_time_ms = result['execution_time_ms']
         job.finished_at = datetime.now(timezone.utc)
 
-        if result['timed_out']:
+        if result["internal_error"]:
+            job.status = "failed"
+        elif result["timed_out"]:
             job.status = "timed_out"
-        elif result['exit_code'] == 0:
+        elif result["exit_code"] == 0:
             job.status = "completed"
         else:
             job.status = "failed"
