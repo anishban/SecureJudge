@@ -1,5 +1,5 @@
 import redis
-from rq import Worker, Queue
+from rq import SimpleWorker, Queue
 
 from app import create_app
 
@@ -14,7 +14,7 @@ def start_worker():
             Queue("jobs", connection=redis_connection)
         ]
 
-        worker = Worker(queues, connection=redis_connection)
+        worker = SimpleWorker(queues, connection=redis_connection)
         worker.work()
 
 if __name__ == "__main__":
