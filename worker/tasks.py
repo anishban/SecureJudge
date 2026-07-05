@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from app import create_app
 from app.extensions import db
 from app.services.job_service import get_job_by_id
-from app.services.python_execution_service import execute_python_code
+from app.services.docker_execution_service import execute_python_code_in_docker
 
 def process_job(job_id):
     app = create_app()
@@ -20,7 +20,7 @@ def process_job(job_id):
         job.started_at = datetime.now(timezone.utc)
         db.session.commit()
 
-        result = execute_python_code(job.source_code)
+        result = execute_python_code_in_docker(job.source_code)
 
         job.stdout = result['stdout']
         job.stderr = result['stderr']
