@@ -31,7 +31,7 @@ def submit_job():
 
     return jsonify(job.to_dict()),201
 
-jobs_bp.route("/jobs/<int:job_id>",methods=['GET'])
+@jobs_bp.route("/jobs/<int:job_id>",methods=['GET'])
 def get_job(job_id):
     job = get_job_by_id(job_id)
     if job is None:
