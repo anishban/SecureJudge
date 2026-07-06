@@ -16,10 +16,6 @@ from app.constants import (
 
 
 def _truncate_output(output, max_length):
-    """
-    Prevent extremely large stdout/stderr from being stored in the database.
-    """
-
     if output is None:
         return ""
 
@@ -33,27 +29,29 @@ def execute_python_code_in_docker(
     source_code,
     timeout_seconds=DEFAULT_EXECUTION_TIMEOUT_SECONDS
 ):
-    """
-    Execute Python source code inside a temporary Docker container.
-
-    Safeguards:
-    - unique container name
-    - network disabled
-    - memory limit
-    - CPU limit
-    - timeout
-    - forced container cleanup on timeout
-    - temp directory cleanup
-    - stdout/stderr truncation
-    - Docker unavailable handling
-    """
-
-    temp_dir = None
     container_name = f"securejudge-{uuid.uuid4().hex}"
     start_time = time.perf_counter()
 
+    sandbox_container_base_dir = os.getenv(
+        "SANDBOX_CONTAINER_DIR",
+        tempfile.gettempdir()
+    )
+
+    sandbox_host_base_dir = os.getenv(
+        "SANDBOX_HOST_DIR",
+        sandbox_container_base_dir
+    )
+
+    temp_dir = None
+
     try:
-        temp_dir = tempfile.mkdtemp()
+        os.makedirs(sandbox_container_base_dir, exist_ok=True)
+
+        temp_dir = tempfile.mkdtemp(dir=sandbox_container_base_dir)
+
+        temp_dir_name = os.path.basename(temp_dir)
+        host_temp_dir = os.path.join(sandbox_host_base_dir, temp_dir_name)
+
         code_file_path = os.path.join(temp_dir, "main.py")
 
         with open(code_file_path, "w", encoding="utf-8") as code_file:
@@ -67,7 +65,7 @@ def execute_python_code_in_docker(
             "--network", "none",
             "--memory", DOCKER_MEMORY_LIMIT,
             "--cpus", DOCKER_CPU_LIMIT,
-            "-v", f"{temp_dir}:/sandbox:ro",
+            "-v", f"{host_temp_dir}:/sandbox:ro",
             "-w", "/sandbox",
             PYTHON_DOCKER_IMAGE,
             "python",
@@ -84,14 +82,8 @@ def execute_python_code_in_docker(
         execution_time_ms = int((time.perf_counter() - start_time) * 1000)
 
         return {
-            "stdout": _truncate_output(
-                completed_process.stdout,
-                MAX_STDOUT_LENGTH
-            ),
-            "stderr": _truncate_output(
-                completed_process.stderr,
-                MAX_STDERR_LENGTH
-            ),
+            "stdout": _truncate_output(completed_process.stdout, MAX_STDOUT_LENGTH),
+            "stderr": _truncate_output(completed_process.stderr, MAX_STDERR_LENGTH),
             "exit_code": completed_process.returncode,
             "timed_out": False,
             "execution_time_ms": execution_time_ms,
@@ -107,12 +99,9 @@ def execute_python_code_in_docker(
 
         execution_time_ms = int((time.perf_counter() - start_time) * 1000)
 
-        stdout = error.stdout or ""
-        stderr = error.stderr or "Execution timed out."
-
         return {
-            "stdout": _truncate_output(stdout, MAX_STDOUT_LENGTH),
-            "stderr": _truncate_output(stderr, MAX_STDERR_LENGTH),
+            "stdout": _truncate_output(error.stdout or "", MAX_STDOUT_LENGTH),
+            "stderr": _truncate_output(error.stderr or "Execution timed out.", MAX_STDERR_LENGTH),
             "exit_code": None,
             "timed_out": True,
             "execution_time_ms": execution_time_ms,
