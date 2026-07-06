@@ -14,3 +14,7 @@ class Config:
         "REDIS_URL",
         "redis://localhost:6379/0"
     )
+
+class TestingConfig(Config):
+    TESTING = True
+    SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
