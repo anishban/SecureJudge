@@ -20,7 +20,7 @@ def create_job(language, source_code):
     return job
 
 def get_job_by_id(job_id):
-    return Job.query.get(job_id)
+    return db.session.get(Job, job_id)
 
 def list_jobs():
     return Job.query.order_by(Job.created_at.desc()).all()
