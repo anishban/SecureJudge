@@ -4,3 +4,6 @@ __pycache__/
 *.pyc
 instance/
 .pytest_cache/
+api/.sandbox_runs/
+frontend/node_modules/
+frontend/dist/

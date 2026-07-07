@@ -19,6 +19,9 @@ def _truncate_output(output, max_length):
     if output is None:
         return ""
 
+    if isinstance(output, bytes):
+        output = output.decode("utf-8", errors="replace")
+
     if len(output) <= max_length:
         return output
 
