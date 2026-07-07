@@ -1,6 +1,6 @@
 # SecureJudge
 
-SecureJudge is a backend-focused distributed code execution platform. It accepts code submissions through a Flask API, stores jobs in PostgreSQL, queues execution work with Redis/RQ, and runs submitted Python code inside isolated Docker containers with resource limits.
+SecureJudge is a distributed code execution platform with a low-level React console frontend and a Flask API. It accepts Python submissions, stores jobs in PostgreSQL, queues execution work with Redis/RQ, and runs submitted code inside isolated Docker containers with resource limits.
 
 This project is designed as a resume-ready backend/security project showing API design, asynchronous job processing, database persistence, containerized execution, and sandboxing fundamentals.
 
@@ -8,7 +8,8 @@ This project is designed as a resume-ready backend/security project showing API 
 
 ## Features
 
-- Submit Python code through a REST API
+- Submit Python code through a React/Tailwind editor UI or REST API
+- Poll job status from the frontend at 3-second intervals
 - Store submitted jobs and execution results in PostgreSQL
 - Process jobs asynchronously using Redis Queue
 - Execute code inside Docker sandbox containers
@@ -34,13 +35,17 @@ This project is designed as a resume-ready backend/security project showing API 
 - Docker
 - Docker Compose
 - pytest
+- React
+- JavaScript
+- Tailwind CSS
+- Vite
 
 ---
 
 ## Architecture
 
 ```text
-Client
+React Frontend
   |
   | HTTP request
   v
@@ -73,39 +78,27 @@ PostgreSQL
 
 ```text
 SecureJudge/
-  app/
-    __init__.py
-    config.py
-    constants.py
-    extensions.py
-    models/
-      __init__.py
-      job.py
-    routes/
-      __init__.py
-      health.py
-      jobs.py
-    services/
-      docker_execution_service.py
-      job_service.py
-      job_validation_service.py
-      queue_service.py
-      python_execution_service.py
-  worker/
-    __init__.py
-    worker.py
-    tasks.py
-  tests/
-    __init__.py
-    conftest.py
-    test_health.py
-    test_job_validation.py
-    test_jobs_api.py
-  .dockerignore
+  api/
+    app/
+      models/
+      routes/
+      services/
+    worker/
+    tests/
+    Dockerfile
+    requirements.txt
+  frontend/
+    src/
+      components/
+      hooks/
+      services/
+    Dockerfile
+    nginx.conf
+    package.json
+    tailwind.config.js
   .gitignore
-  Dockerfile
   docker-compose.yml
-  requirements.txt
+  pytest.ini
   README.md
 ```
 
@@ -121,14 +114,16 @@ Docker Compose starts the full local stack:
 - Redis
 - Flask API
 - RQ worker
+- React frontend served by nginx
 
-The Flask API runs inside Docker on port `5000`, but it is mapped to host port `5001`.
+The frontend runs on host port `3000` and proxies `/api/*` to the Flask API. The API is also mapped directly to host port `5001`.
 
 ```text
+http://127.0.0.1:3000
 http://127.0.0.1:5001
 ```
 
-Port `5001` is used to avoid common conflicts with macOS services that use port `5000`.
+Port `5001` is used for the API to avoid common conflicts with macOS services that use port `5000`.
 
 ---
 

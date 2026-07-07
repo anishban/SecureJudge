@@ -10,14 +10,25 @@ services:
       - "5432:5432"
     volumes:
       - securejudge_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U securejudge -d securejudge_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   redis:
     image: redis:7
     container_name: securejudge-redis
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
   
   api:
-    build: .
+    build: ./api
     container_name: securejudge-api
     environment:
       FLASK_APP: app:create_app
@@ -27,29 +38,40 @@ services:
     ports:
       - "5001:5000"
     volumes:
-      - .:/app
+      - ./api:/app
       - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
-      - postgres
-      - redis
-    command: python -m flask run --host 0.0.0.0
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: sh -c "python -m flask ensure-db && python -m flask run --host 0.0.0.0"
 
   worker:
-    build: .
+    build: ./api
     container_name: securejudge-worker
     environment:
       DATABASE_URL: postgresql+psycopg://securejudge:securejudge@postgres:5432/securejudge_db
       REDIS_URL: redis://redis:6379/0
-      SANDBOX_HOST_DIR: ${PWD}/.sandbox_runs
+      SANDBOX_HOST_DIR: ${PWD}/api/.sandbox_runs
       SANDBOX_CONTAINER_DIR: /app/.sandbox_runs
     volumes:
-
-      - .:/app
+      - ./api:/app
       - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
-      - postgres
-      - redis
-    command: python -m worker.worker
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: sh -c "docker pull python:3.12-slim && python -m worker.worker"
+
+  frontend:
+    build: ./frontend
+    container_name: securejudge-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
   
 volumes:
   securejudge_postgres_data:

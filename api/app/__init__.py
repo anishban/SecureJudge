@@ -16,6 +16,11 @@ def create_app(config_class=Config):
         db.create_all()
         print("Database initialized.")
 
+    @app.cli.command("ensure-db")
+    def ensure_db():
+        db.create_all()
+        print("Database tables are ready.")
+
     from app.routes.health import health_bp
     app.register_blueprint(health_bp)
 
